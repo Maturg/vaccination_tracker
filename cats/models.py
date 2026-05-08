@@ -12,22 +12,26 @@ class CHOICES(models.TextChoices):
     GINGER = 'Ginger', 'Рыжий'
     MIXED = 'Mixed', 'Смешанный'
 
-# Модель котика (остаётся без изменений)
+
 class Cat(models.Model):
-    name = models.CharField(max_length=16)
-    color = models.CharField(max_length=16, choices=CHOICES.choices)
+    """Модель котика"""
+    name = models.CharField(max_length=16, verbose_name='Имя')
+    color = models.CharField(max_length=16, choices=CHOICES.choices, verbose_name='Цвет')
     birth_year = models.IntegerField(
         validators=[
             MinValueValidator(datetime.now().year - 40),
             MaxValueValidator(datetime.now().year),
-        ]
+        ],
+        verbose_name='Год рождения'
     )
     owner = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='cats'
+        User, on_delete=models.CASCADE, related_name='cats', verbose_name='Владелец'
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
 
     class Meta:
+        verbose_name = 'Котик'
+        verbose_name_plural = 'Котики'
         constraints = [
             models.UniqueConstraint(fields=['name', 'owner'], name='unique_name_owner')
         ]
@@ -40,8 +44,8 @@ class Cat(models.Model):
         return datetime.now().year - self.birth_year
 
 
-# НОВАЯ МОДЕЛЬ: Справочник вакцин
 class Vaccine(models.Model):
+    """Справочник вакцин"""
     name = models.CharField(max_length=100, unique=True, verbose_name='Название вакцины')
     description = models.TextField(blank=True, verbose_name='Описание')
     validity_period = models.PositiveIntegerField(
@@ -57,33 +61,29 @@ class Vaccine(models.Model):
         ordering = ['name']
 
     def __str__(self):
-        return self.name
+        return f'{self.name} ({self.validity_period} дней)'
 
 
-# НОВАЯ МОДЕЛЬ: Вакцинация кота
 class Vaccination(models.Model):
+    """Модель вакцинации кота"""
     cat = models.ForeignKey(
-        Cat, on_delete=models.CASCADE, related_name='vaccinations',
-        verbose_name='Котик'
+        Cat, on_delete=models.CASCADE, related_name='vaccinations', verbose_name='Котик'
     )
     vaccine = models.ForeignKey(
-        Vaccine, on_delete=models.CASCADE, related_name='vaccinations',
-        verbose_name='Вакцина'
+        Vaccine, on_delete=models.CASCADE, related_name='vaccinations', verbose_name='Вакцина'
     )
     vaccination_date = models.DateField(verbose_name='Дата вакцинации')
     next_due_date = models.DateField(
         verbose_name='Дата следующей вакцинации',
-        help_text='Рассчитывается автоматически: vaccination_date + vaccine.validity_period'
+        help_text='Рассчитывается автоматически'
     )
     notes = models.TextField(blank=True, verbose_name='Заметки')
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'Вакцинация'
         verbose_name_plural = 'Вакцинации'
         ordering = ['-vaccination_date']
-        # У одного котика не может быть двух одинаковых вакцин в один день
         unique_together = [['cat', 'vaccine', 'vaccination_date']]
 
     def __str__(self):
@@ -97,11 +97,11 @@ class Vaccination(models.Model):
 
     @property
     def is_overdue(self):
-        """Просрочена ли вакцинация (следующая дата уже прошла)"""
+        """Просрочена ли вакцинация"""
         return self.next_due_date < datetime.now().date()
 
     @property
     def days_until_due(self):
-        """Дней до следующей вакцинации (отрицательное число если просрочена)"""
+        """Дней до следующей вакцинации"""
         delta = self.next_due_date - datetime.now().date()
         return delta.days
