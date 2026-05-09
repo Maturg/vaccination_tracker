@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CatSerializer(serializers.ModelSerializer):
-    owner = UserSerializer(read_only=True)
+    owner = serializers.PrimaryKeyRelatedField(read_only=True)
     age = serializers.ReadOnlyField()
 
     class Meta:
@@ -31,6 +31,7 @@ class VaccinationSerializer(serializers.ModelSerializer):
     vaccine_name = serializers.ReadOnlyField(source='vaccine.name')
     is_overdue = serializers.ReadOnlyField()
     days_until_due = serializers.ReadOnlyField()
+    next_due_date = serializers.ReadOnlyField()  # <--- ДОБАВЬТЕ ЭТУ СТРОКУ
 
     class Meta:
         model = Vaccination

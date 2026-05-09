@@ -14,6 +14,9 @@ class CatViewSet(viewsets.ModelViewSet):
     serializer_class = CatSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
 
 class VaccineViewSet(viewsets.ModelViewSet):
     queryset = Vaccine.objects.all()
@@ -30,7 +33,6 @@ class VaccinationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='overdue')
     def overdue(self, request):
-        """Просроченные вакцинации (next_due_date < сегодня)"""
         today = timezone.now().date()
         overdue_vaccinations = self.queryset.filter(next_due_date__lt=today)
         serializer = self.get_serializer(overdue_vaccinations, many=True)
@@ -41,7 +43,6 @@ class VaccinationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='upcoming')
     def upcoming(self, request):
-        """Скоро нужные вакцинации (следующие 30 дней)"""
         today = timezone.now().date()
         upcoming_date = today + timedelta(days=30)
         upcoming_vaccinations = self.queryset.filter(
@@ -56,7 +57,6 @@ class VaccinationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='history')
     def history(self, request, pk=None):
-        """История вакцинаций конкретного котика"""
         vaccination = self.get_object()
         cat = vaccination.cat
         cat_vaccinations = Vaccination.objects.filter(cat=cat).order_by('-vaccination_date')
