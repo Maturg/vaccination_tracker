@@ -7,32 +7,37 @@ from datetime import timedelta
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Cat, Vaccine, Vaccination
 from .serializers import CatSerializer, VaccineSerializer, VaccinationSerializer
+from .permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly, IsOwnerOrAdminOrReadOnly
 
 
 class CatViewSet(viewsets.ModelViewSet):
+    """ViewSet для котиков"""
     queryset = Cat.objects.all()
     serializer_class = CatSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsOwnerOrReadOnly]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
 
 class VaccineViewSet(viewsets.ModelViewSet):
+    """ViewSet для справочника вакцин (только для администратора)"""
     queryset = Vaccine.objects.all()
     serializer_class = VaccineSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminOrReadOnly]
 
 
 class VaccinationViewSet(viewsets.ModelViewSet):
+    """ViewSet для вакцинаций"""
     queryset = Vaccination.objects.all()
     serializer_class = VaccinationSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsOwnerOrAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['vaccine', 'cat']
 
     @action(detail=False, methods=['get'], url_path='overdue')
     def overdue(self, request):
+        """Просроченные вакцинации (next_due_date < сегодня)"""
         today = timezone.now().date()
         overdue_vaccinations = self.queryset.filter(next_due_date__lt=today)
         serializer = self.get_serializer(overdue_vaccinations, many=True)
@@ -43,6 +48,7 @@ class VaccinationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='upcoming')
     def upcoming(self, request):
+        """Скоро нужные вакцинации (следующие 30 дней)"""
         today = timezone.now().date()
         upcoming_date = today + timedelta(days=30)
         upcoming_vaccinations = self.queryset.filter(
@@ -57,6 +63,7 @@ class VaccinationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='history')
     def history(self, request, pk=None):
+        """История вакцинаций конкретного котика"""
         vaccination = self.get_object()
         cat = vaccination.cat
         cat_vaccinations = Vaccination.objects.filter(cat=cat).order_by('-vaccination_date')
