@@ -44,7 +44,7 @@ whitenoise==6.6.0
 ### 1. Клонирование репозитория
 
 ```bash
-git clone https://github.com/ВАШ_АККАУНТ/vaccination_tracker.git
+git clone https://github.com/Maturg/vaccination_tracker.git
 cd vaccination_tracker
 ```
 
